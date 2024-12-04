@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Resultados de Sugerencias</title>
+  <link rel="stylesheet" href="styles.css">
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
+    import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+
+    // Configuración de Firebase
+    const firebaseConfig = {
+      apiKey: "AIzaSyCs0LgyS7IfZopFPooIf1Ur7DKwkHLvWDk",
+      authDomain: "datos-de-name-mascotas.firebaseapp.com",
+      projectId: "datos-de-name-mascotas",
+      storageBucket: "datos-de-name-mascotas.appspot.com",
+      messagingSenderId: "88299031337",
+      appId: "1:88299031337:web:6ad6b073f40a44cb470538"
+    };
+
+    // Inicializar Firebase
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    async function fetchAndDisplayData() {
+      const querySnapshot = await getDocs(collection(db, "clients"));
+      const nameCounts = {};
+      const tableBody = document.getElementById("dataBody");
+
+      querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        const { name, location, phone, email, suggestion } = data;
+
+        // Agregar datos a la tabla
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td>${name}</td>
+          <td>${location}</td>
+          <td>${phone}</td>
+          <td>${email}</td>
+          <td>${suggestion}</td>
+        `;
+        tableBody.appendChild(row);
+
+        // Contar sugerencias
+        if (nameCounts[suggestion]) {
+          nameCounts[suggestion]++;
+        } else {
+          nameCounts[suggestion] = 1;
+        }
+      });
+
+      // Mostrar conteo de sugerencias
+      const summaryTable = document.getElementById("summaryBody");
+      for (const [suggestion, count] of Object.entries(nameCounts)) {
+        const summaryRow = document.createElement("tr");
+        summaryRow.innerHTML = `
+          <td>${suggestion}</td>
+          <td>${count}</td>
+        `;
+        summaryTable.appendChild(summaryRow);
+      }
+    }
+
+    // Cargar datos cuando se cargue el DOM
+    document.addEventListener("DOMContentLoaded", fetchAndDisplayData);
+  </script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background-color: #f4f4f9;
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    h2 {
+      margin-top: 20px;
+      text-align: center;
+    }
+
+    table {
+      width: 100%;
+      margin: 20px 0;
+      border-collapse: collapse;
+      background-color: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    }
+
+    table th, table td {
+      padding: 12px 15px;
+      text-align: left;
+      border: 1px solid #ddd;
+    }
+
+    table th {
+      background-color: #4CAF50;
+      color: white;
+    }
+
+    table tr:nth-child(even) {
+      background-color: #f2f2f2;
+    }
+
+    @media screen and (max-width: 768px) {
+      table, thead, tbody, th, td, tr {
+        display: block;
+      }
+      
+      table th {
+        position: absolute;
+        top: -9999px;
+        left: -9999px;
+      }
+      
+      table tr {
+        border: 1px solid #ccc;
+        margin-bottom: 10px;
+      }
+      
+      table td {
+        position: relative;
+        padding-left: 50%;
+      }
+
+      table td:before {
+        content: attr(data-label);
+        position: absolute;
+        left: 6px;
+        font-weight: bold;
+      }
+    }
+  </style>
+</head>
+<body>
+  <h1>Resultados de las Sugerencias</h1>
+
+  <!-- Tabla de Datos -->
+  <h2>Clientes Registrados</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Nombre</th>
+        <th>Ubicación</th>
+        <th>Teléfono</th>
+        <th>Email</th>
+        <th>Sugerencia</th>
+      </tr>
+    </thead>
+    <tbody id="dataBody"></tbody>
+  </table>
+
+  <!-- Tabla de Resumen -->
+  <h2>Conteo de Sugerencias</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Nombre Sugerido</th>
+        <th>Veces Elegido</th>
+      </tr>
+    </thead>
+    <tbody id="summaryBody"></tbody>
+  </table>
+</body>
+</html>
