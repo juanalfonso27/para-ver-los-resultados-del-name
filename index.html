@@ -4,69 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Resultados de Sugerencias</title>
-  <link rel="stylesheet" href="styles.css">
-  
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
-    import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
-
-    // Configuración de Firebase
-    const firebaseConfig = {
-      apiKey: "AIzaSyCs0LgyS7IfZopFPooIf1Ur7DKwkHLvWDk",
-      authDomain: "datos-de-name-mascotas.firebaseapp.com",
-      projectId: "datos-de-name-mascotas",
-      storageBucket: "datos-de-name-mascotas.appspot.com",
-      messagingSenderId: "88299031337",
-      appId: "1:88299031337:web:6ad6b073f40a44cb470538"
-    };
-
-    // Inicializar Firebase
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
-
-    async function fetchAndDisplayData() {
-      const querySnapshot = await getDocs(collection(db, "clients"));
-      const nameCounts = {};
-      const tableBody = document.getElementById("dataBody");
-
-      querySnapshot.forEach((doc) => {
-        const data = doc.data();
-        const { name, location, phone, email, suggestion } = data;
-
-        // Agregar datos a la tabla
-        const row = document.createElement("tr");
-        row.innerHTML = `
-          <td>${name}</td>
-          <td>${location}</td>
-          <td>${phone}</td>
-          <td>${email}</td>
-          <td>${suggestion}</td>
-        `;
-        tableBody.appendChild(row);
-
-        // Contar sugerencias
-        if (nameCounts[suggestion]) {
-          nameCounts[suggestion]++;
-        } else {
-          nameCounts[suggestion] = 1;
-        }
-      });
-
-      // Mostrar conteo de sugerencias
-      const summaryTable = document.getElementById("summaryBody");
-      for (const [suggestion, count] of Object.entries(nameCounts)) {
-        const summaryRow = document.createElement("tr");
-        summaryRow.innerHTML = `
-          <td>${suggestion}</td>
-          <td>${count}</td>
-        `;
-        summaryTable.appendChild(summaryRow);
-      }
-    }
-
-    // Cargar datos cuando se cargue el DOM
-    document.addEventListener("DOMContentLoaded", fetchAndDisplayData);
-  </script>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -75,14 +12,9 @@
       background-color: #f4f4f9;
     }
 
-    h1 {
+    h1, h2 {
       text-align: center;
       margin-bottom: 20px;
-    }
-
-    h2 {
-      margin-top: 20px;
-      text-align: center;
     }
 
     table {
@@ -138,8 +70,152 @@
       }
     }
   </style>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
+    import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+
+    // Configuración de Firebase
+    const firebaseConfig = {
+      apiKey: "AIzaSyCs0LgyS7IfZopFPooIf1Ur7DKwkHLvWDk",
+      authDomain: "datos-de-name-mascotas.firebaseapp.com",
+      projectId: "datos-de-name-mascotas",
+      storageBucket: "datos-de-name-mascotas.appspot.com",
+      messagingSenderId: "88299031337",
+      appId: "1:88299031337:web:6ad6b073f40a44cb470538"
+    };
+
+    // Inicializar Firebase
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    async function fetchAndDisplayData() {
+      const querySnapshot = await getDocs(collection(db, "clients"));
+      const nameCounts = {};
+      const suggestionDetails = {};
+      const tableBody = document.getElementById("dataBody");
+      const summaryBody = document.getElementById("summaryBody");
+      const top50Body = document.getElementById("top50Body");
+      const suggestionSelect = document.getElementById("suggestionSelect");
+
+      querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        const { name, location, phone, email, suggestion } = data;
+
+        // Agregar datos a la tabla de clientes registrados
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td>${name}</td>
+          <td>${location}</td>
+          <td>${phone}</td>
+          <td>${email}</td>
+          <td>${suggestion}</td>
+        `;
+        tableBody.appendChild(row);
+
+        // Contar sugerencias y almacenar detalles
+        if (nameCounts[suggestion]) {
+          nameCounts[suggestion]++;
+          suggestionDetails[suggestion].push({ name, location, phone, email });
+        } else {
+          nameCounts[suggestion] = 1;
+          suggestionDetails[suggestion] = [{ name, location, phone, email }];
+        }
+      });
+
+      // Ordenar sugerencias por número de veces elegidas
+      const sortedSuggestions = Object.entries(nameCounts)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 50);
+
+      // Mostrar conteo de sugerencias
+      for (const [suggestion, count] of Object.entries(nameCounts)) {
+        const summaryRow = document.createElement("tr");
+        summaryRow.innerHTML = `
+          <td>${suggestion}</td>
+          <td>${count}</td>
+        `;
+        summaryBody.appendChild(summaryRow);
+
+        // Poblar select de sugerencias
+        const option = document.createElement("option");
+        option.value = suggestion;
+        option.textContent = suggestion;
+        suggestionSelect.appendChild(option);
+      }
+
+      // Mostrar top 50 sugerencias
+      sortedSuggestions.forEach(([suggestion, count], index) => {
+        const top50Row = document.createElement("tr");
+        top50Row.innerHTML = `
+          <td>${index + 1}</td>
+          <td>${suggestion}</td>
+          <td>${count}</td>
+        `;
+        top50Body.appendChild(top50Row);
+      });
+
+      // Añadir funcionalidad "Ver más" a las tablas
+      addShowMore('dataBody', 'showMoreClients');
+      addShowMore('summaryBody', 'showMoreSuggestions');
+      addShowMore('top50Body', 'showMoreTop50');
+    }
+
+    // Función para añadir "Ver más" a las tablas
+    function addShowMore(tableBodyId, buttonId) {
+      const rows = document.getElementById(tableBodyId).rows;
+      const button = document.getElementById(buttonId);
+      const initialDisplayCount = 5;
+
+      // Mostrar solo las primeras filas
+      for (let i = initialDisplayCount; i < rows.length; i++) {
+        rows[i].style.display = 'none';
+      }
+
+      // Añadir evento al botón "Ver más"
+      button.addEventListener('click', () => {
+        for (let i = initialDisplayCount; i < rows.length; i++) {
+          rows[i].style.display = '';
+        }
+        button.style.display = 'none';
+      });
+    }
+
+    // Mostrar los detalles del nombre seleccionado o escrito
+    async function showSelectedSuggestionDetails() {
+      const selectedSuggestion = document.getElementById("suggestionSelect").value;
+      const inputSuggestion = document.getElementById("suggestionInput").value.trim();
+      const suggestion = selectedSuggestion || inputSuggestion;
+      const detailTableBody = document.getElementById("detailBody");
+      detailTableBody.innerHTML = ""; // Limpiar la tabla
+
+      if (suggestion) {
+        const querySnapshot = await getDocs(collection(db, "clients"));
+        querySnapshot.forEach((doc) => {
+          const data = doc.data();
+          const { name, location, phone, email } = data;
+
+          if (data.suggestion === suggestion) {
+            const detailRow = document.createElement("tr");
+            detailRow.innerHTML = `
+              <td>${name}</td>
+              <td>${location}</td>
+              <td>${phone}</td>
+              <td>${email}</td>
+            `;
+            detailTableBody.appendChild(detailRow);
+          }
+        });
+      }
+    }
+
+    // Cargar datos cuando se cargue el DOM
+    document.addEventListener("DOMContentLoaded", fetchAndDisplayData);
+    document.getElementById("suggestionSelect").addEventListener("change", showSelectedSuggestionDetails);
+    document.getElementById("suggestionInputBtn").addEventListener("click", showSelectedSuggestionDetails);
+  </script>
 </head>
 <body>
+  <!-- Contenido anterior (sin cambios) -->
   <h1>Resultados de las Sugerencias</h1>
 
   <!-- Tabla de Datos -->
@@ -156,6 +232,9 @@
     </thead>
     <tbody id="dataBody"></tbody>
   </table>
+  <div class="show-more">
+    <button id="showMoreClients">Ver más</button>
+  </div>
 
   <!-- Tabla de Resumen -->
   <h2>Conteo de Sugerencias</h2>
@@ -167,6 +246,49 @@
       </tr>
     </thead>
     <tbody id="summaryBody"></tbody>
+  </table>
+  <div class="show-more">
+    <button id="showMoreSuggestions">Ver más</button>
+  </div>
+
+  <!-- Nueva Sección de Top 50 Sugerencias -->
+  <h2>Top 50 Sugerencias Más Elegidas</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Ranking</th>
+        <th>Nombre Sugerido</th>
+        <th>Veces Elegido</th>
+      </tr>
+    </thead>
+    <tbody id="top50Body"></tbody>
+  </table>
+  <div class="show-more">
+    <button id="showMoreTop50">Ver más</button>
+  </div>
+
+  <!-- Selección de Nombre Sugerido -->
+  <h2>Detalles del Nombre Seleccionado</h2>
+  <select id="suggestionSelect">
+    <option value="" disabled selected>Selecciona un nombre sugerido</option>
+  </select>
+
+  <!-- Campo para Escribir Nombre Sugerido -->
+  <input type="text" id="suggestionInput" placeholder="Escribe un nombre sugerido">
+  <button id="suggestionInputBtn">Mostrar Detalles</button>
+
+  <!-- Detalles del Nombre Seleccionado -->
+  <h2>Detalles del Nombre Seleccionado</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Nombre</th>
+        <th>Ubicación</th>
+        <th>Teléfono</th>
+        <th>Email</th>
+      </tr>
+    </thead>
+    <tbody id="detailBody"></tbody>
   </table>
 </body>
 </html>
