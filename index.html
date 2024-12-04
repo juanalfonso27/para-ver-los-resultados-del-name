@@ -7,7 +7,7 @@
   
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
-    import { getFirestore, collection, getDocs, addDoc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+    import { getFirestore, collection, getDocs, addDoc, query, where } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
 
     // Configuración de Firebase
     const firebaseConfig = {
@@ -33,23 +33,25 @@
       const email = document.getElementById("email").value;
       const suggestion = document.getElementById("suggestion").value;
 
-      // Verificar duplicados
-      const querySnapshot = await getDocs(collection(db, "clients"));
-      let isDuplicate = false;
-
-      querySnapshot.forEach((doc) => {
-        const data = doc.data();
-        if (data.email === email || data.phone === phone) {
-          isDuplicate = true;
-        }
-      });
-
-      if (isDuplicate) {
-        alert("El correo o el número de teléfono ya están registrados.");
-        return;
-      }
-
       try {
+        // Verificar duplicados por correo electrónico
+        const emailQuery = query(collection(db, "clients"), where("email", "==", email));
+        const emailSnapshot = await getDocs(emailQuery);
+        
+        if (!emailSnapshot.empty) {
+          alert("El correo ya está registrado.");
+          return;
+        }
+
+        // Verificar duplicados por teléfono
+        const phoneQuery = query(collection(db, "clients"), where("phone", "==", phone));
+        const phoneSnapshot = await getDocs(phoneQuery);
+
+        if (!phoneSnapshot.empty) {
+          alert("El número de teléfono ya está registrado.");
+          return;
+        }
+
         // Guardar en Firestore si no hay duplicados
         await addDoc(collection(db, "clients"), {
           name,
@@ -58,6 +60,7 @@
           email,
           suggestion,
         });
+
         alert("¡Registro exitoso!");
         document.getElementById("registerForm").reset(); // Limpiar el formulario
       } catch (error) {
