@@ -7,7 +7,7 @@
   
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
-    import { getFirestore, collection, query, where, getDocs, addDoc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+    import { getFirestore, collection, getDocs, addDoc, query, where } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
 
     // Configuración de Firebase
     const firebaseConfig = {
@@ -37,7 +37,7 @@
         // Verificar duplicados por correo electrónico
         const emailQuery = query(collection(db, "clients"), where("email", "==", email));
         const emailSnapshot = await getDocs(emailQuery);
-        
+
         if (!emailSnapshot.empty) {
           alert("El correo ya está registrado.");
           return;
