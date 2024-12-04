@@ -3,11 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Resultados de Sugerencias</title>
+  <title>Registro de Clientes y Sugerencias</title>
   
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
-    import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+    import { getFirestore, collection, getDocs, addDoc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
 
     // Configuración de Firebase
     const firebaseConfig = {
@@ -23,49 +23,50 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    async function fetchAndDisplayData() {
+    // Función para guardar datos con validación
+    async function saveData(event) {
+      event.preventDefault();
+
+      const name = document.getElementById("name").value;
+      const location = document.getElementById("location").value;
+      const phone = document.getElementById("phone").value;
+      const email = document.getElementById("email").value;
+      const suggestion = document.getElementById("suggestion").value;
+
+      // Verificar duplicados
       const querySnapshot = await getDocs(collection(db, "clients"));
-      const nameCounts = {};
-      const tableBody = document.getElementById("dataBody");
+      let isDuplicate = false;
 
       querySnapshot.forEach((doc) => {
         const data = doc.data();
-        const { name, location, phone, email, suggestion } = data;
-
-        // Agregar datos a la tabla
-        const row = document.createElement("tr");
-        row.innerHTML = `
-          <td>${name}</td>
-          <td>${location}</td>
-          <td>${phone}</td>
-          <td>${email}</td>
-          <td>${suggestion}</td>
-        `;
-        tableBody.appendChild(row);
-
-        // Contar sugerencias
-        if (nameCounts[suggestion]) {
-          nameCounts[suggestion]++;
-        } else {
-          nameCounts[suggestion] = 1;
+        if (data.email === email || data.phone === phone) {
+          isDuplicate = true;
         }
       });
 
-      // Mostrar conteo de sugerencias
-      const summaryTable = document.getElementById("summaryBody");
-      for (const [suggestion, count] of Object.entries(nameCounts)) {
-        const summaryRow = document.createElement("tr");
-        summaryRow.innerHTML = `
-          <td>${suggestion}</td>
-          <td>${count}</td>
-        `;
-        summaryTable.appendChild(summaryRow);
+      if (isDuplicate) {
+        alert("El correo o el número de teléfono ya están registrados.");
+        return;
+      }
+
+      try {
+        // Guardar en Firestore si no hay duplicados
+        await addDoc(collection(db, "clients"), {
+          name,
+          location,
+          phone,
+          email,
+          suggestion,
+        });
+        alert("¡Registro exitoso!");
+        document.getElementById("registerForm").reset(); // Limpiar el formulario
+      } catch (error) {
+        console.error("Error al guardar los datos:", error);
+        alert("Hubo un problema al registrar los datos.");
       }
     }
-
-    // Cargar datos cuando se cargue el DOM
-    document.addEventListener("DOMContentLoaded", fetchAndDisplayData);
   </script>
+
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -79,93 +80,67 @@
       margin-bottom: 20px;
     }
 
-    h2 {
-      margin-top: 20px;
-      text-align: center;
+    form {
+      max-width: 600px;
+      margin: 0 auto;
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
     }
 
-    table {
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+
+    input {
       width: 100%;
-      margin: 20px 0;
-      border-collapse: collapse;
-      background-color: white;
-      border-radius: 8px;
-      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+      padding: 10px;
+      margin-bottom: 15px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
     }
 
-    table th, table td {
-      padding: 12px 15px;
-      text-align: left;
-      border: 1px solid #ddd;
-    }
-
-    table th {
+    button {
       background-color: #4CAF50;
       color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 16px;
     }
 
-    table tr:nth-child(even) {
-      background-color: #f2f2f2;
-    }
-
-    @media screen and (max-width: 768px) {
-      table, thead, tbody, th, td, tr {
-        display: block;
-      }
-      
-      table th {
-        position: absolute;
-        top: -9999px;
-        left: -9999px;
-      }
-      
-      table tr {
-        border: 1px solid #ccc;
-        margin-bottom: 10px;
-      }
-      
-      table td {
-        position: relative;
-        padding-left: 50%;
-      }
-
-      table td:before {
-        content: attr(data-label);
-        position: absolute;
-        left: 6px;
-        font-weight: bold;
-      }
+    button:hover {
+      background-color: #45a049;
     }
   </style>
 </head>
 <body>
-  <h1>Resultados de las Sugerencias</h1>
+  <h1>Registro de Clientes</h1>
+  <form id="registerForm">
+    <label for="name">Nombre:</label>
+    <input type="text" id="name" name="name" placeholder="Tu nombre completo" required>
 
-  <!-- Tabla de Datos -->
-  <h2>Clientes Registrados</h2>
-  <table>
-    <thead>
-      <tr>
-        <th>Nombre</th>
-        <th>Ubicación</th>
-        <th>Teléfono</th>
-        <th>Email</th>
-        <th>Sugerencia</th>
-      </tr>
-    </thead>
-    <tbody id="dataBody"></tbody>
-  </table>
+    <label for="location">¿De dónde eres?:</label>
+    <input type="text" id="location" name="location" placeholder="Ciudad o país" required>
 
-  <!-- Tabla de Resumen -->
-  <h2>Conteo de Sugerencias</h2>
-  <table>
-    <thead>
-      <tr>
-        <th>Nombre Sugerido</th>
-        <th>Veces Elegido</th>
-      </tr>
-    </thead>
-    <tbody id="summaryBody"></tbody>
-  </table>
+    <label for="phone">Número de Teléfono:</label>
+    <input type="tel" id="phone" name="phone" placeholder="Ej: +595 123 456789" required>
+
+    <label for="email">Correo Electrónico:</label>
+    <input type="email" id="email" name="email" placeholder="Tu correo" required>
+
+    <label for="suggestion">Sugerencia para el Nombre:</label>
+    <input type="text" id="suggestion" name="suggestion" placeholder="Ej: Max, Luna, Rex" required>
+
+    <button type="submit">Registrar</button>
+  </form>
+
+  <script>
+    document.getElementById("registerForm").addEventListener("submit", saveData);
+  </script>
 </body>
 </html>
